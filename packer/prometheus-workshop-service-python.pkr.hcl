@@ -12,11 +12,11 @@ variable "aws_region" {
 }
 
 variable "aws_instance_type" {
-  default = "c6i.xlarge"
+  default = "c6i.large"
 }
 
-source "amazon-ebs" "prometheus-workshop-service-python" {
-  ami_name              = "prometheus-workshop-service-python-${formatdate("YYYY-MM-DD", timestamp())}"
+source "amazon-ebs" "prometheus-workshop-service-java" {
+  ami_name              = "prometheus-workshop-service-java-${formatdate("YYYY-MM-DD", timestamp())}"
   instance_type         = var.aws_instance_type
   region                = var.aws_region
   force_deregister      = true
@@ -30,7 +30,7 @@ source "amazon-ebs" "prometheus-workshop-service-python" {
 
   source_ami_filter {
     filters = {
-      name                = "ubuntu/images/*ubuntu-jammy-22.04-amd64-server-*"
+      name                = "ubuntu/images/*ubuntu-jammy-24.04-amd64-server-*"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
@@ -42,8 +42,8 @@ source "amazon-ebs" "prometheus-workshop-service-python" {
 }
 
 build {
-  name    = "prometheus-workshop-service-python"
-  sources = ["source.amazon-ebs.prometheus-workshop-service-python"]
+  name    = "prometheus-workshop-service-java"
+  sources = ["source.amazon-ebs.prometheus-workshop-service-java"]
 
   provisioner "file" {
     sources = [

@@ -14,6 +14,10 @@ public class WorkshopApplication {
         return new ShowcaseController(openTelemetry);
     }
 
+    @Bean ScenarioController scenarioController() {
+        return new ScenarioController();
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(WorkshopApplication.class, args);
     }

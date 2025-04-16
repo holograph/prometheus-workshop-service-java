@@ -2,21 +2,22 @@
 set -e
 
 export DEBIAN_FRONTEND=noninteractive
+OPENTELEMETRY_JAVA_AGENT_VERSION=2.15.0
 
-echo '- Installing Python'
-sudo add-apt-repository -y ppa:deadsnakes/ppa
-sudo apt-get update
-sudo apt-get install -y python3.12 python3.12-venv git
+echo '- Installing JDK'
+sudo apt-get install -y openjdk-17-jdk
 
-echo '- Setting up virtual environment'
-python3.12 -mvenv venv
-source ~/venv/bin/activate
-pip install poetry
+echo '- Installing Maven'
+sudo apt-get install -y maven
 
 echo '- Setting up workshop service'
-git clone https://github.com/holograph/prometheus-workshop-service-python.git
-cd ~/prometheus-workshop-service-python
-poetry install
+git clone https://github.com/holograph/prometheus-workshop-service-java.git
+cd ~/prometheus-workshop-service-java
+mvn install
+
+echo '- Installing OpenTelemetry Java agent'
+cd
+wget "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/${OPENTELEMETRY_JAVA_AGENT_VERSION}/opentelemetry-javaagent.jar"
 
 echo '- Installing systemd service for workshop service'
 cat <<EOF | sudo tee /etc/systemd/system/workshop-service.service
@@ -29,8 +30,18 @@ After=network-online.target
 User=ubuntu
 Group=ubuntu
 Type=simple
-WorkingDirectory=/home/ubuntu/prometheus-workshop-service-python
-ExecStart=/home/ubuntu/venv/bin/python -m workshop_service.app
+WorkingDirectory=/home/ubuntu/prometheus-workshop-service-java
+ExecStart=/usr/bin/java \
+  -javaagent:/home/ubuntu/opentelemetry-javaagent.jar \
+  -Dotel.service.name=prometheus-workshop-service-java \
+  -Dotel.logs.exporter=none \
+  -Dotel.traces.exporter=none \
+  -Dotel.metrics.exporter=otlp \
+  -Dotel.metric.export.interval=10000 \
+  -jar /home/ubuntu/prometheus-workshop-service-java/target/prometheus-workshop-service-java-0.0.1-SNAPSHOT.jar
+ExecStop=/bin/kill -15 $MAINPID
+
+SuccessExitStatus=143
 
 [Install]
 WantedBy=multi-user.target

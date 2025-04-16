@@ -2,7 +2,7 @@ package com.tomergabel.examples.prometheus.scenarios;
 
 import java.util.ArrayList;
 
-public class MemLeak extends Thread implements Scenario {
+public class MemLeak extends Scenario {
     public final static int DEFAULT_CHUNK_SIZE = 1024 * 1024;
     public final static int DEFAULT_MAX_CHUNKS = 600;
     public final static int DEFAULT_INTERVAL_SECONDS = 1;
@@ -11,7 +11,6 @@ public class MemLeak extends Thread implements Scenario {
     private final int maxChunks;
     private final long intervalSeconds;
     private final ArrayList<byte[]> chunks;
-    private volatile boolean stopped;
 
     public MemLeak() {
         this.chunkSize = DEFAULT_CHUNK_SIZE;
@@ -26,13 +25,6 @@ public class MemLeak extends Thread implements Scenario {
         return "scenario1";
     }
 
-    @Override
-    public void stop(long timeoutMS) throws InterruptedException {
-        this.stopped = true;
-        this.interrupt();
-        this.join(timeoutMS);
-    }
-
     public void run() {
         try {
             while (!this.stopped) {
@@ -41,6 +33,7 @@ public class MemLeak extends Thread implements Scenario {
                     this.chunks.add(chunk);
 
                 }
+                //noinspection BusyWait
                 Thread.sleep(this.intervalSeconds * 1000);
             }
         } catch (InterruptedException e) {

@@ -60,7 +60,7 @@ rm -rf "$PROMETHEUS_PROCESS_EXPORTER_PACKAGE"
 cat <<EOF | sudo tee /etc/prometheus/process-exporter.yml
 process_names:
   - comm:
-    - python
+    - java
 EOF
 sudo chown prometheus:prometheus /etc/prometheus/process-exporter.yml
 cd

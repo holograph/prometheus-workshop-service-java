@@ -2,6 +2,8 @@ package com.tomergabel.examples.prometheus;
 
 import com.tomergabel.examples.prometheus.scenarios.MemLeak;
 import com.tomergabel.examples.prometheus.scenarios.Scenario;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -62,6 +64,7 @@ public class ScenarioController {
     );
 
     private final Map<String, Scenario> running = new HashMap<>();
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private String statusOf(String alias) {
         return running.containsKey(alias) && running.get(alias).isAlive() ? "running" : "stopped";
@@ -92,11 +95,15 @@ public class ScenarioController {
                 if (active == null)
                     throw new ResponseStatusException(HttpStatus.NOT_MODIFIED);
                 active.stop(2000L);
+                logger.info("Stopping scenario {}", alias);
                 return new SingleScenarioStatusResponse(alias, "stopped");
             case "start":
                 if (active != null && active.isAlive())
                     throw new ResponseStatusException(HttpStatus.NOT_MODIFIED);
-                running.put(alias, builders.get(alias).get());
+                logger.info("Starting scenario {}", alias);
+                var scenario = builders.get(alias).get();
+                scenario.start();
+                running.put(alias, scenario);
                 return new SingleScenarioStatusResponse(alias, "running");
             default:
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid action '" + req.getAction() + "'");
