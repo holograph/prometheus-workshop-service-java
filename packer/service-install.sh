@@ -17,7 +17,7 @@ mvn install
 
 echo '- Installing OpenTelemetry Java agent'
 cd
-wget "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/${OPENTELEMETRY_JAVA_AGENT_VERSION}/opentelemetry-javaagent.jar"
+wget "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v${OPENTELEMETRY_JAVA_AGENT_VERSION}/opentelemetry-javaagent.jar"
 
 echo '- Installing systemd service for workshop service'
 cat <<EOF | sudo tee /etc/systemd/system/workshop-service.service

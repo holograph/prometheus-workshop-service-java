@@ -12,7 +12,7 @@ sudo apt-get update
 sudo apt-get upgrade -y
 sudo apt-get install -y                           \
   apt-transport-https software-properties-common  \
-  wget net-tools jq curl zip unzip conky
+  wget net-tools jq curl zip unzip conky-all
 
 echo '- Setting up Linux desktop and lab user'
 sudo apt-get install -y ubuntu-desktop-minimal
