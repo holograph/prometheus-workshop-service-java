@@ -1,5 +1,6 @@
 package com.tomergabel.examples.prometheus;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tomergabel.examples.prometheus.scenarios.*;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.slf4j.Logger;
@@ -16,21 +17,15 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 enum ScenarioAction {
+    @JsonProperty("stop")
     STOP,
+    @JsonProperty("start")
     START
 }
 
-class ScenarioActionRequest {
-    private final ScenarioAction action;
-
-    public ScenarioActionRequest(ScenarioAction action) {
-        this.action = action;
-    }
-
-    public ScenarioAction getAction() {
-        return action;
-    }
-}
+record HealthResponse(Map<String, String> scenarios) {}
+record ScenarioStatusResponse(String scenario, String status) {}
+record ScenarioActionRequest(ScenarioAction action) {}
 
 @RestController
 @RequestMapping("/scenario")
@@ -50,32 +45,32 @@ public class ScenarioController {
     }
 
     @GetMapping("/health")
-    ScenarioHealthResponse health() {
-        return new ScenarioHealthResponse(
+    HealthResponse health() {
+        return new HealthResponse(
                 builders.keySet().stream().collect(Collectors.toMap(k -> k, this::statusOf)));
     }
 
     @GetMapping("/{alias}")
-    SingleScenarioStatusResponse scenarioStatus(@PathVariable String alias) {
+    ScenarioStatusResponse scenarioStatus(@PathVariable String alias) {
         if (!builders.containsKey(alias))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        return new SingleScenarioStatusResponse(alias, statusOf(alias));
+        return new ScenarioStatusResponse(alias, statusOf(alias));
     }
 
     @PostMapping("/{alias}")
-    SingleScenarioStatusResponse action(@PathVariable String alias, @RequestBody ScenarioActionRequest req) throws InterruptedException {
+    ScenarioStatusResponse action(@PathVariable String alias, @RequestBody ScenarioActionRequest req) throws InterruptedException {
         if (!builders.containsKey(alias))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 
         Scenario active = running.get(alias);
 
-        switch (req.getAction()) {
+        switch (req.action()) {
             case STOP:
                 if (active == null)
                     throw new ResponseStatusException(HttpStatus.NOT_MODIFIED);
                 active.stop(2000L);
                 logger.info("Stopping scenario {}", alias);
-                return new SingleScenarioStatusResponse(alias, "stopped");
+                return new ScenarioStatusResponse(alias, "stopped");
             case START:
                 if (active != null && active.isAlive())
                     throw new ResponseStatusException(HttpStatus.NOT_MODIFIED);
@@ -83,9 +78,9 @@ public class ScenarioController {
                 var scenario = builders.get(alias).get();
                 scenario.start();
                 running.put(alias, scenario);
-                return new SingleScenarioStatusResponse(alias, "running");
+                return new ScenarioStatusResponse(alias, "running");
             default:
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid action '" + req.getAction() + "'");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid action '" + req.action() + "'");
         }
     }
 
