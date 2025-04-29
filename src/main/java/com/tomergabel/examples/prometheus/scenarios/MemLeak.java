@@ -18,6 +18,8 @@ public class MemLeak extends Scenario {
         this.intervalSeconds = DEFAULT_INTERVAL_SECONDS;
         this.chunks = new ArrayList<>();
         this.stopped = false;
+
+        this.setDaemon(true);
     }
 
     @Override

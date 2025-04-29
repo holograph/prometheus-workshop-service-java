@@ -7,7 +7,8 @@ import io.opentelemetry.api.metrics.*;
 import org.springframework.web.bind.annotation.*;
 
 
-@RestController("/showcase")
+@RestController
+@RequestMapping("/showcase")
 @ResponseBody
 public class ShowcaseController {
     private final Meter meter;

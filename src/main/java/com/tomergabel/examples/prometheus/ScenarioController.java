@@ -1,66 +1,45 @@
 package com.tomergabel.examples.prometheus;
 
-import com.tomergabel.examples.prometheus.scenarios.MemLeak;
-import com.tomergabel.examples.prometheus.scenarios.Scenario;
+import com.tomergabel.examples.prometheus.scenarios.*;
+import io.swagger.v3.oas.annotations.Hidden;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-class ScenarioHealthResponse extends DemoResponse {
-    final Map<String, String> scenarios;
-
-    public ScenarioHealthResponse(Map<String, String> scenarios) {
-        this.scenarios = scenarios;
-    }
-
-    public Map<String, String> getScenarios() {
-        return scenarios;
-    }
-}
-
-class SingleScenarioStatusResponse extends DemoResponse {
-    final String scenario;
-    final String status;
-
-    public SingleScenarioStatusResponse(String scenario, String status) {
-        this.scenario = scenario;
-        this.status = status;
-    }
-
-    public String getScenario() {
-        return scenario;
-    }
-
-    @Override
-    public String getStatus() {
-        return status;
-    }
+enum ScenarioAction {
+    STOP,
+    START
 }
 
 class ScenarioActionRequest {
-    private final String action;
+    private final ScenarioAction action;
 
-    public ScenarioActionRequest(String action) {
+    public ScenarioActionRequest(ScenarioAction action) {
         this.action = action;
     }
 
-    public String getAction() {
+    public ScenarioAction getAction() {
         return action;
     }
 }
 
-@RestController("/scenario")
+@RestController
+@RequestMapping("/scenario")
 public class ScenarioController {
 
     private final Map<String, Supplier<Scenario>> builders = Map.of(
-            "scenario1", MemLeak::new
+            "scenario1", MemLeak::new,
+            "scenario2", DiskSpace::new,
+            "scenario3", RateLimit::new
     );
 
     private final Map<String, Scenario> running = new HashMap<>();
@@ -91,13 +70,13 @@ public class ScenarioController {
         Scenario active = running.get(alias);
 
         switch (req.getAction()) {
-            case "stop":
+            case STOP:
                 if (active == null)
                     throw new ResponseStatusException(HttpStatus.NOT_MODIFIED);
                 active.stop(2000L);
                 logger.info("Stopping scenario {}", alias);
                 return new SingleScenarioStatusResponse(alias, "stopped");
-            case "start":
+            case START:
                 if (active != null && active.isAlive())
                     throw new ResponseStatusException(HttpStatus.NOT_MODIFIED);
                 logger.info("Starting scenario {}", alias);
@@ -110,26 +89,19 @@ public class ScenarioController {
         }
     }
 
+    private int requestCount = 0;
+    private Instant requestCountFrom = Instant.ofEpochMilli(0);
 
-/*
-request_count_from = 0
-request_count = 0
-
-# TODO relocate to ratelimit scenario
-@router.get("/do_something", include_in_schema=False)
-def sample_endpoint() -> dict:
-    # "Rate limit"
-    global request_count, request_count_from
-    if request_count_from <= time.time() - 60:
-        request_count_from = time.time()
-        request_count = 1
-    elif request_count >= 10:
-        raise HTTPException(status_code=429)
-    else:
-        request_count += 1
-
-    seconds = float(random.randrange(100, 1000)) / 1000.0
-    time.sleep(seconds)
-    return {"status": "ok"}
-*/
+    @GetMapping("/do_something")
+    @Hidden
+    synchronized void sampleEndpoint() {
+        var elapsed = Duration.between(this.requestCountFrom, Instant.now());
+        if (elapsed.compareTo(RateLimit.DEFAULT_RATE_LIMIT_WINDOW) > 0) {
+            this.requestCountFrom = Instant.now();
+            this.requestCount = 1;
+        } else if (this.requestCount >= 10) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS);
+        } else
+            this.requestCount++;
+    }
 }
