@@ -1,10 +1,24 @@
 #!/bin/bash -e
 
+echo '- Setting up external IP helper'
+cat <<"EOF" | sudo tee /usr/local/sbin/get-ec2-ip.sh
+#!/bin/bash
+if [ -f "$HOME/.externalip" ]; then
+  cat "$HOME/.externalip"
+else
+  imds_token="$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")"
+  curl -H "X-aws-ec2-metadata-token: $imds_token" "http://169.254.169.254/latest/meta-data/public-ipv4" \
+    | tee "$HOME/.externalip"
+fi
+EOF
+sudo chmod a+x /usr/local/sbin/get-ec2-ip.sh
+
 echo '- Setting up MOTD'
 cat <<"EOF_OUT" | sudo tee /usr/local/sbin/generate-motd.sh
 #!/bin/bash
 
-public_ip="$(curl http://169.254.169.254/latest/meta-data/public-ipv4)"
+imds_token="$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")"
+public_ip="$(curl -H "X-aws-ec2-metadata-token: $imds_token" http://169.254.169.254/latest/meta-data/public-ipv4)"
 cat <<EOF | sudo tee /etc/motd
 Welcome to your Prometheus workshop lab instance!
 
@@ -44,6 +58,7 @@ sudo chmod u+x /usr/local/sbin/generate-motd.sh
 sudo systemctl enable generate-motd.service
 
 echo '- Setting up Conky'
+sudo apt-get install -y conky-all
 sudo -ustudent desktop-file-install --dir=/home/student/.config/autostart /usr/share/applications/conky.desktop
 sudo mkdir -p /home/student/.config/conky
 cat <<"EOF" | sudo tee /home/student/.config/conky/conky.conf
@@ -101,11 +116,11 @@ conky.text = [[
 Welcome to your Prometheus workshop lab instance!
 
 The two most important links you will need are:
-* http://${exec curl http://169.254.169.254/latest/meta-data/public-ipv4}:8080/docs - The example service for this workshop
-* http://${exec curl http://169.254.169.254/latest/meta-data/public-ipv4}:3000 - Grafana
+* http://${exec /usr/local/sbin/get-ec2-ip.sh}:8080/swagger_ui.html - The example service for this workshop
+* http://${exec /usr/local/sbin/get-ec2-ip.sh}:3000 - Grafana
 
-Your instance's public IP is ${exec curl http://169.254.169.254/latest/meta-data/public-ipv4}, and provides the following SSH access via:
-  ssh -i <private_key> student@${exec curl http://169.254.169.254/latest/meta-data/public-ipv4}
+Your instance's public IP is ${exec /usr/local/sbin/get-ec2-ip.sh}, and provides the following SSH access via:
+  ssh -i <private_key> student@${exec /usr/local/sbin/get-ec2-ip.sh}
 The private key is available from the classroom materials.
 ]]
 EOF

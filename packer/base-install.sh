@@ -12,10 +12,24 @@ sudo apt-get update
 sudo apt-get upgrade -y
 sudo apt-get install -y                           \
   apt-transport-https software-properties-common  \
-  wget net-tools jq curl zip unzip conky-all
+  wget net-tools jq curl zip unzip
 
-echo '- Setting up Linux desktop and lab user'
-sudo apt-get install -y ubuntu-desktop-minimal
+echo '- Setting up Linux desktop'
+sudo apt-get install -y ubuntu-desktop-minimal xrdp
+sudo sed -i 's/^port=3389/port=tcp:\/\/:3389/' /etc/xrdp/xrdp.ini
+sudo systemctl restart xrdp.service
+cat <<"EOF" | sudo tee /etc/dconf/profile/user
+user-db:user
+system-db:local
+EOF
+sudo mkdir /etc/dconf/db/local.d
+cat <<"EOF" | sudo tee /etc/dconf/db/local.d/00-no-overview
+[org/gnome/shell/extensions/dash-to-dock]
+disable-overview-on-startup=true
+EOF
+sudo dconf update
+
+echo '- Setting up lab user'
 sudo useradd -g sudo -m -s /bin/bash -p $(echo "student" | openssl passwd -1 -stdin) student
 sudo mkdir -p /home/student/.ssh
 sudo mkdir -p /home/student/.config/autostart
@@ -31,6 +45,9 @@ APT::Periodic::Update-Package-Lists "0";
 APT::Periodic::Unattended-Upgrade "0";
 EOF
 sudo sed -i 's/Prompt=lts/Prompt=never/' /etc/update-manager/release-upgrades
+
+echo '- Re-enabling SSH'
+sudo systemctl enable ssh.service
 
 echo '--- Installing lab components ---'
 ./service-install.sh
