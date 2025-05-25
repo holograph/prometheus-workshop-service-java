@@ -1,6 +1,5 @@
 package com.tomergabel.examples.prometheus;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tomergabel.examples.prometheus.scenarios.*;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.slf4j.Logger;
@@ -16,16 +15,9 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-enum ScenarioAction {
-    @JsonProperty("stop")
-    STOP,
-    @JsonProperty("start")
-    START
-}
-
+enum ScenarioAction { start, stop }
 record HealthResponse(Map<String, String> scenarios) {}
 record ScenarioStatusResponse(String scenario, String status) {}
-record ScenarioActionRequest(ScenarioAction action) {}
 
 @RestController
 @RequestMapping("/scenario")
@@ -58,20 +50,20 @@ public class ScenarioController {
     }
 
     @PostMapping("/{alias}")
-    ScenarioStatusResponse action(@PathVariable String alias, @RequestBody ScenarioActionRequest req) throws InterruptedException {
+    ScenarioStatusResponse action(@PathVariable String alias, @RequestParam ScenarioAction action) throws InterruptedException {
         if (!builders.containsKey(alias))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 
         Scenario active = running.get(alias);
 
-        switch (req.action()) {
-            case STOP:
+        switch (action) {
+            case stop:
                 if (active == null)
                     throw new ResponseStatusException(HttpStatus.NOT_MODIFIED);
                 active.stop(2000L);
                 logger.info("Stopping scenario {}", alias);
                 return new ScenarioStatusResponse(alias, "stopped");
-            case START:
+            case start:
                 if (active != null && active.isAlive())
                     throw new ResponseStatusException(HttpStatus.NOT_MODIFIED);
                 logger.info("Starting scenario {}", alias);
@@ -80,7 +72,7 @@ public class ScenarioController {
                 running.put(alias, scenario);
                 return new ScenarioStatusResponse(alias, "running");
             default:
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid action '" + req.action() + "'");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid action '" + action + "'");
         }
     }
 

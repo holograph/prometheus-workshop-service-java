@@ -23,7 +23,7 @@ cat <<EOF | sudo tee /etc/motd
 Welcome to your Prometheus workshop lab instance!
 
 The two most important links you will need are:
-* http://${public_ip}:8080/swagger_ui/index.html - The example service for this workshop
+* http://${public_ip}:8080/swagger-ui/index.html - The example service for this workshop
 * http://${public_ip}:3000 - Grafana
 
 Your instance's public IP is ${public_ip}, and provides the following SSH access via:
@@ -116,7 +116,7 @@ conky.text = [[
 Welcome to your Prometheus workshop lab instance!
 
 The two most important links you will need are:
-* http://${exec /usr/local/sbin/get-ec2-ip.sh}:8080/swagger_ui.html - The example service for this workshop
+* http://${exec /usr/local/sbin/get-ec2-ip.sh}:8080/swagger-ui.html - The example service for this workshop
 * http://${exec /usr/local/sbin/get-ec2-ip.sh}:3000 - Grafana
 
 Your instance's public IP is ${exec /usr/local/sbin/get-ec2-ip.sh}, and provides the following SSH access via:
