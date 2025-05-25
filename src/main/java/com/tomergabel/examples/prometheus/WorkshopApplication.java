@@ -25,7 +25,7 @@ public class WorkshopApplication {
                         .build())
                 .registerView(
                     InstrumentSelector.builder()
-                        .setMeterName("showcase")
+                        .setName("my_duration")
                         .build(),
                     View.builder()
                         .setAggregation(Aggregation.explicitBucketHistogram(List.of(0.0, 500.0, 1000.0, 10000.0)))

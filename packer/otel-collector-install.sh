@@ -15,8 +15,6 @@ receivers:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
-      http:
-        endpoint: 0.0.0.0:4318
 exporters:
   prometheus:
     endpoint: "0.0.0.0:8000"
